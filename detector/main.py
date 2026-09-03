@@ -24,7 +24,6 @@ def main() -> None:
     tracker = sv.ByteTrack()
     box_annotator = sv.BoxAnnotator()
     label_annotator = sv.LabelAnnotator()
-    line_zone_annotator = sv.LineZoneAnnotator()
 
     # En Windows, el backend MSMF por defecto de OpenCV corta el stream de
     # varias webcams a los pocos segundos (error interno del driver);
@@ -41,15 +40,12 @@ def main() -> None:
     if not ok:
         raise RuntimeError("La camara se abrio pero no entrego ningun frame")
 
-    # La linea por defecto se calcula con la resolucion real del primer frame
-    # (vertical, a mitad de ancho) en vez de un tamano fijo que puede no
-    # coincidir con la camara conectada. Vertical porque el movimiento
-    # esperado (personas/vehiculos cruzando frente a la camara) suele ser
-    # de izquierda a derecha en el cuadro.
-    alto, ancho = frame.shape[:2]
-    inicio_linea = config.LINE_START or (ancho // 2, 0)
-    fin_linea = config.LINE_END or (ancho // 2, alto)
-    line_zone = sv.LineZone(start=sv.Point(*inicio_linea), end=sv.Point(*fin_linea))
+    # Se cuenta cada objeto una sola vez, la primera vez que aparece su ID de
+    # tracking (no en cada frame en que sigue en pantalla). Si el mismo
+    # objeto sale del cuadro y vuelve a entrar, ByteTrack le asigna un ID
+    # nuevo y se cuenta de nuevo -- es el comportamiento esperado ("contar
+    # al ingresar al cuadro").
+    ids_contados: set[int] = set()
 
     try:
         while ok:
@@ -62,12 +58,15 @@ def main() -> None:
             detections = detections[mascara]
             detections = tracker.update_with_detections(detections)
 
-            crossed_in, crossed_out = line_zone.trigger(detections)
-            for idx in np.where(crossed_in | crossed_out)[0]:
-                clase = model.names[detections.class_id[idx]]
+            for tracker_id, class_id in zip(detections.tracker_id, detections.class_id):
+                if tracker_id is None or tracker_id in ids_contados:
+                    continue
+                ids_contados.add(tracker_id)
+
+                clase = model.names[class_id]
                 tipo = config.CLASE_A_TIPO[clase]
                 threading.Thread(target=enviar_evento, args=(tipo, clase), daemon=True).start()
-                print(f"Cruce detectado: {clase} -> {tipo}")
+                print(f"Nuevo objeto contado: {clase} -> {tipo}")
 
             if config.MOSTRAR_VENTANA:
                 etiquetas = [
@@ -76,7 +75,6 @@ def main() -> None:
                 ]
                 frame = box_annotator.annotate(scene=frame, detections=detections)
                 frame = label_annotator.annotate(scene=frame, detections=detections, labels=etiquetas)
-                frame = line_zone_annotator.annotate(frame=frame, line_counter=line_zone)
                 cv2.imshow("Detector de trafico y personas", frame)
                 if cv2.waitKey(1) & 0xFF == ord("q"):
                     break

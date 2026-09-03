@@ -24,15 +24,7 @@ def _env_bool(nombre: str, default: bool) -> bool:
     return valor.strip().lower() in ("1", "true", "yes", "on")
 
 
-def _env_point(nombre: str, default: tuple[int, int] | None) -> tuple[int, int] | None:
-    valor = os.environ.get(nombre)
-    if valor is None:
-        return default
-    x, y = valor.split(",")
-    return (int(x), int(y))
-
-
-# Endpoint del backend PHP que recibe cada cruce detectado.
+# Endpoint del backend PHP que recibe cada objeto contado.
 ENDPOINT_URL = os.environ.get("DETECTOR_ENDPOINT_URL", "http://localhost/proyecto1/api/registrar.php")
 
 # Fuente de video: 0 = webcam por defecto. Tambien acepta ruta a un archivo
@@ -42,16 +34,6 @@ VIDEO_SOURCE = _env_video_source("DETECTOR_VIDEO_SOURCE", 0)
 # Modelo YOLOv8 (el mas liviano, para correr en tiempo real sin GPU dedicada).
 MODEL_PATH = os.environ.get("DETECTOR_MODEL_PATH", "yolov8n.pt")
 CONFIDENCE_THRESHOLD = _env_float("DETECTOR_CONFIDENCE_THRESHOLD", 0.4)
-
-# Linea virtual de conteo: (x1, y1) -> (x2, y2) en pixeles del frame.
-# Si se deja en None (default), main.py la calcula automaticamente como una
-# linea vertical a mitad de ancho, del alto real del frame que entregue la
-# camara -- evita que quede mal ubicada si la resolucion no es la esperada.
-# Para una linea horizontal (ej. camara mirando de arriba hacia abajo un
-# pasillo), setear ambas variables de entorno, ej.
-# DETECTOR_LINE_START="0,240" DETECTOR_LINE_END="640,240".
-LINE_START = _env_point("DETECTOR_LINE_START", None)
-LINE_END = _env_point("DETECTOR_LINE_END", None)
 
 # Mapeo de clases COCO relevantes -> tipo que espera el backend.
 CLASE_A_TIPO = {

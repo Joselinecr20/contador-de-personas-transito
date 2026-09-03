@@ -38,9 +38,14 @@ Proyecto standalone, sin relación con el framework LesliePhp/`fac/`.
    . venv/Scripts/activate
    python main.py
    ```
-   Ajustar `detector/config.py` para cambiar la fuente de video, la línea
-   de conteo o el umbral de confianza. `q` con la ventana de overlay
-   enfocada la cierra.
+   Ajustar `detector/config.py` para cambiar la fuente de video o el
+   umbral de confianza. `q` con la ventana de overlay enfocada la cierra.
+
+   Cada persona/vehículo se cuenta una sola vez, en el momento en que
+   entra al cuadro de la cámara (no en cada frame que sigue en pantalla) —
+   se deduplica por el ID de tracking que le asigna `ByteTrack`. Si el
+   mismo objeto sale del cuadro y vuelve a entrar, se cuenta de nuevo (se
+   le asigna un ID nuevo).
 
 ## Configurar el detector (`main.py`) por variables de entorno
 
@@ -51,12 +56,10 @@ servicio/headless) sin tocar el código:
 
 | Variable                        | Default                                          | Descripción                                    |
 |----------------------------------|---------------------------------------------------|-------------------------------------------------|
-| `DETECTOR_ENDPOINT_URL`          | `http://localhost/proyecto1/api/registrar.php`     | URL del endpoint PHP que recibe cada cruce      |
+| `DETECTOR_ENDPOINT_URL`          | `http://localhost/proyecto1/api/registrar.php`     | URL del endpoint PHP que recibe cada objeto contado |
 | `DETECTOR_VIDEO_SOURCE`          | `0` (primera webcam)                               | Índice de cámara, ruta a video o URL RTSP       |
 | `DETECTOR_MODEL_PATH`            | `yolov8n.pt`                                       | Pesos del modelo YOLOv8 a usar                  |
 | `DETECTOR_CONFIDENCE_THRESHOLD`  | `0.4`                                              | Confianza mínima para considerar una detección  |
-| `DETECTOR_LINE_START`            | `0,360`                                            | Punto inicial de la línea de conteo (`x,y`)     |
-| `DETECTOR_LINE_END`              | `1280,360`                                         | Punto final de la línea de conteo (`x,y`)       |
 | `DETECTOR_MOSTRAR_VENTANA`       | `true`                                             | `false` para correr sin ventana de overlay      |
 
 **Git Bash / MINGW64** (con el venv ya activado):

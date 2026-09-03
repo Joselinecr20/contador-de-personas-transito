@@ -5,18 +5,19 @@ Basado en `Documentacion/planeacion-proyecto.txt`.
 ## 1. Objetivo
 
 Detectar vehículos y personas en video de cámara (Python + `supervision`),
-enviar cada detección/cruce exitoso a un endpoint PHP que lleva el conteo en
+enviar cada objeto nuevo detectado a un endpoint PHP que lleva el conteo en
 MySQL, y mostrarlo en una página Bootstrap con dos números grandes
-(vehículos / personas) filtrable por rango de fechas, sin login.
+(vehículos / personas), actualizada en tiempo real y filtrable por rango de
+fechas, sin login.
 
 ## 2. Arquitectura
 
 ```
-[Cámara / video] → [Python: YOLO + supervision (tracking + line-zone)]
-        │  POST HTTP (JSON) por cada cruce único
+[Cámara / video] → [Python: YOLO + supervision (tracking por ID)]
+        │  POST HTTP (JSON) por cada objeto nuevo (ID de tracking no visto antes)
         ▼
 [PHP API en XAMPP] → [MySQL: tabla unica de conteo]
-        ▲  GET (con filtro de fechas)
+        ▲  GET (con filtro de fechas), sondeado cada 3s desde el frontend
         │
 [index.php: Bootstrap, tabla 2 columnas, números grandes, filtro fechas]
 ```
@@ -28,8 +29,8 @@ Apache) y le pega al endpoint PHP por HTTP a `http://localhost/proyecto1/api/...
 
 - **Detección**: Python 3.10+, `ultralytics` (YOLOv8, clases COCO ya incluyen
   `person` y varias de vehículo: `car`, `truck`, `bus`, `motorcycle`), 
-  `supervision` (tracking con ByteTrack + `LineZone`/`LineZoneAnnotator` para
-  contar cruces sin duplicar), `opencv-python`, `requests`.
+  `supervision` (tracking con ByteTrack; el conteo se dedupica por ID de
+  tracking, no por cruce de línea — ver sección 7), `opencv-python`, `requests`.
 - **Backend**: PHP puro (mismo patrón simple, sin framework) sobre XAMPP,
   `PDO` para MySQL.
 - **DB**: MySQL/MariaDB (el de XAMPP), una sola tabla.
@@ -66,8 +67,9 @@ CREATE TABLE conteo (
 );
 ```
 
-Cada fila = un cruce/detección único ya deduplicado por tracking (no un
-snapshot de "cuántos hay en pantalla ahora").
+Cada fila = un objeto único ya deduplicado por ID de tracking, contado en
+el momento en que entra al cuadro (no un snapshot de "cuántos hay en
+pantalla ahora").
 
 ## 6. Contrato de la API PHP
 
@@ -95,15 +97,18 @@ inyección de datos basura al ENUM).
   `vehiculo`.
 - Tracking con `supervision.ByteTrack` para asignar un ID persistente a cada
   objeto entre frames.
-- Conteo con `supervision.LineZone`: se define una línea virtual en el
-  frame; el conteo real ocurre cuando un track **cruza** la línea (evita
-  contar el mismo objeto muchas veces mientras está en pantalla, que sería
-  el bug más obvio de esta arquitectura).
-- Al detectar un cruce nuevo, POST inmediato a `registrar.php` con
+- Conteo por **entrada al cuadro**, no por cruce de línea: se cuenta cada
+  objeto una sola vez, la primera vez que aparece su ID de tracking (se
+  mantiene un `set` de IDs ya contados en memoria durante la corrida —
+  evita contar el mismo objeto muchas veces mientras está en pantalla, que
+  sería el bug más obvio de esta arquitectura). Si el objeto sale del
+  cuadro y vuelve a entrar, ByteTrack le asigna un ID nuevo y se cuenta de
+  nuevo — comportamiento esperado.
+- Al detectar un ID nuevo, POST inmediato a `registrar.php` con
   `requests` (timeout corto, no bloquear el loop de video si el request
   falla — solo loguear el error).
-- Overlay visual opcional (`supervision.LineZoneAnnotator` +
-  `BoxAnnotator`) para poder verificar visualmente que cuenta bien durante
+- Overlay visual opcional (`supervision.BoxAnnotator` + `LabelAnnotator`)
+  para poder verificar visualmente que cuenta bien durante
   desarrollo/evaluación.
 
 ## 8. Frontend (`index.php`)
@@ -131,27 +136,30 @@ inyección de datos basura al ENUM).
 
 **Fase 3 — Detección en Python**
 - [x] `requirements.txt` + entorno virtual (instalado y probado).
-- [x] Script base con YOLOv8 + `ByteTrack` + `LineZone` (conteo por cruce)
-      y POST del evento hacia `registrar.php`.
-- [x] Probado con webcam real: captura estable 25s+ sin errores ni falsos
-      positivos de cruce. Se encontró y corrigió un bug real — el backend
-      MSMF por defecto de OpenCV en Windows cortaba el stream a los ~17s;
-      se cambió a `cv2.CAP_DSHOW` para la webcam (ver `main.py`).
-- [ ] Pendiente: validar visualmente (overlay, `MOSTRAR_VENTANA=True`) que
-      un cruce real de una persona/vehículo dispara el POST correcto — no
-      se pudo forzar un cruce real durante la prueba automatizada.
+- [x] Script base con YOLOv8 + `ByteTrack` y POST del evento hacia
+      `registrar.php`.
+- [x] Probado con webcam real: captura estable 25s+ sin errores. Se
+      encontró y corrigió un bug real — el backend MSMF por defecto de
+      OpenCV en Windows cortaba el stream a los ~17s; se cambió a
+      `cv2.CAP_DSHOW` para la webcam (ver `main.py`).
+- [x] Diseño de conteo revisado tras probar en vivo: en vez de una línea
+      virtual (cruzarla no era práctico frente a una webcam de escritorio),
+      ahora se cuenta cada objeto una sola vez al entrar al cuadro,
+      deduplicado por ID de `ByteTrack`. Confirmado funcionando con
+      detecciones reales (`person 0.94`) end-to-end hasta la página.
 
 **Fase 4 — Frontend**
 - [x] `index.php` con la tabla y números grandes leyendo `conteo.php`.
 - [x] Filtro de fechas con `fetch` en la misma página.
+- [x] Actualización automática cada 3s (`setInterval`) sin recargar la
+      página, respetando el filtro de fechas activo si hay uno.
 
 **Fase 5 — Integración y prueba end-to-end**
 - [x] Correr XAMPP (Apache+MySQL) en paralelo al backend/frontend — probado
       con `curl` (registrar → conteo con y sin filtro de fechas, OK).
-- [x] Detector real corriendo contra la webcam sin errores (25s+, backend
-      DirectShow). Pipeline completo (captura → detección → tracking →
-      línea de conteo) verificado; falta solo el paso manual de cruzar la
-      línea frente a la cámara para confirmar el POST real end-to-end.
+- [x] Detector real corriendo contra la webcam, contando personas al
+      entrar al cuadro, reflejado en la página en tiempo real. Confirmado
+      por el usuario ("Hoy si corre perfecto").
 - [ ] Probar el filtro de fechas con datos de al menos 2 días distintos.
 
 **Fase 6 — Documentación**
@@ -170,8 +178,11 @@ inyección de datos basura al ENUM).
 - **Alcance PHP**: plano, standalone — sin relación con el framework
   `fac/`/LesliePhp. Es un laboratorio aparte que evoluciona en paralelo;
   se evaluará más adelante si se integra.
-- **Ubicación/ángulo de la línea de conteo**: depende de la cámara real;
-  se deja como configuración (coordenadas) en `config.py`, no hardcodeada.
+- **Criterio de conteo**: se descartó el conteo por línea virtual (probado
+  y funcional, pero poco práctico para probar con una webcam de
+  escritorio). Se cambió a contar cada objeto una vez al entrar al cuadro,
+  deduplicado por ID de tracking — a pedido del usuario tras probarlo en
+  vivo.
 
 ## 12. Repositorio
 
