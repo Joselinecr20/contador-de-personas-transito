@@ -120,38 +120,35 @@ inyección de datos basura al ENUM).
 ## 9. Fases de ejecución
 
 **Fase 1 — Base de datos**
-- [ ] Crear `db/schema.sql` con la base de datos y la tabla `conteo`.
-- [ ] Ejecutar contra MySQL local de XAMPP.
+- [x] Crear `db/schema.sql` con la base de datos y la tabla `conteo`.
+- [x] Ejecutar contra MySQL local de XAMPP.
 
 **Fase 2 — API PHP**
-- [ ] `api/db.php` (conexión PDO).
-- [ ] `api/registrar.php` (POST, validación de `tipo`).
-- [ ] `api/conteo.php` (GET, con y sin filtro de fechas).
-- [ ] Probar ambos endpoints con `curl`/Postman antes de tocar Python.
+- [x] `api/db.php` (conexión PDO).
+- [x] `api/registrar.php` (POST, validación de `tipo`).
+- [x] `api/conteo.php` (GET, con y sin filtro de fechas).
+- [x] Probar ambos endpoints con `curl`/Postman antes de tocar Python.
 
 **Fase 3 — Detección en Python**
-- [ ] `requirements.txt` + entorno virtual.
-- [ ] Script base: capturar video y correr YOLOv8 (sin tracking aún),
-      confirmar que detecta personas/vehículos.
-- [ ] Agregar `ByteTrack` + `LineZone` para conteo por cruce.
-- [ ] Conectar el evento de cruce al POST hacia `registrar.php`.
-- [ ] Probar con un video de prueba (ej. tráfico de una calle) para
-      verificar que el conteo no duplica ni se pierde.
+- [x] `requirements.txt` + entorno virtual.
+- [x] Script base con YOLOv8 + `ByteTrack` + `LineZone` (conteo por cruce)
+      y POST del evento hacia `registrar.php`.
+- [ ] Probar con webcam real y validar visualmente (overlay) que el conteo
+      no duplica ni se pierde — pendiente en la máquina con la cámara.
 
 **Fase 4 — Frontend**
-- [ ] `index.php` con la tabla y números grandes leyendo `conteo.php`.
-- [ ] Filtro de fechas con `fetch` en la misma página.
+- [x] `index.php` con la tabla y números grandes leyendo `conteo.php`.
+- [x] Filtro de fechas con `fetch` en la misma página.
 
 **Fase 5 — Integración y prueba end-to-end**
-- [ ] Correr XAMPP (Apache+MySQL) + el script Python en paralelo.
-- [ ] Verificar que cada cruce detectado aparece reflejado en la página en
-      near-real-time (o al refrescar).
-- [ ] Probar el filtro de fechas con datos de al menos 2 días distintos
-      (puede requerir insertar filas de prueba con fecha manual para
-      validar el filtro sin esperar 2 días reales).
+- [x] Correr XAMPP (Apache+MySQL) en paralelo al backend/frontend — probado
+      con `curl` (registrar → conteo con y sin filtro de fechas, OK).
+- [ ] Verificar con el detector Python real (webcam) que cada cruce se
+      refleja en la página.
+- [ ] Probar el filtro de fechas con datos de al menos 2 días distintos.
 
 **Fase 6 — Documentación**
-- [ ] README corto: cómo levantar XAMPP, cómo correr el detector, cómo
+- [x] README corto: cómo levantar XAMPP, cómo correr el detector, cómo
       cambiar la fuente de video.
 
 ## 10. Decisiones confirmadas
