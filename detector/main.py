@@ -8,15 +8,48 @@ from ultralytics import YOLO
 
 import config
 
+# Guarda solo la ultima peticion/respuesta a la API para mostrarla superpuesta
+# en la ventana de video; enviar_evento corre en un hilo aparte por cada
+# evento, de ahi el lock.
+_estado_lock = threading.Lock()
+_ultima_peticion = ""
+_ultima_respuesta = ""
+
 
 def enviar_evento(tipo: str, clase: str) -> None:
+    global _ultima_peticion, _ultima_respuesta
     payload = {"tipo": tipo, "clase": clase}
-    print(f"[API] POST {config.ENDPOINT_URL} body={payload}")
+    peticion_str = f"POST {config.ENDPOINT_URL} body={payload}"
+    print(f"[API] {peticion_str}")
+    with _estado_lock:
+        _ultima_peticion = peticion_str
+        _ultima_respuesta = "esperando respuesta..."
     try:
         respuesta = requests.post(config.ENDPOINT_URL, json=payload, timeout=2)
-        print(f"[API] respuesta {respuesta.status_code}: {respuesta.text}")
+        respuesta_str = f"{respuesta.status_code}: {respuesta.text}"
+        print(f"[API] respuesta {respuesta_str}")
+        with _estado_lock:
+            _ultima_respuesta = respuesta_str
     except requests.RequestException as error:
         print(f"[WARN] no se pudo enviar el evento ({tipo}/{clase}): {error}")
+        with _estado_lock:
+            _ultima_respuesta = f"ERROR: {error}"
+
+
+def _dibujar_estado_api(frame: np.ndarray, peticion: str, respuesta: str) -> np.ndarray:
+    alto, ancho = frame.shape[:2]
+    max_chars = max(20, ancho // 9)
+    lineas = [f"REQ: {peticion[:max_chars]}", f"RES: {respuesta[:max_chars]}"]
+
+    caja_alto = 22 * len(lineas) + 10
+    overlay = frame.copy()
+    cv2.rectangle(overlay, (0, alto - caja_alto), (ancho, alto), (0, 0, 0), -1)
+    frame = cv2.addWeighted(overlay, 0.6, frame, 0.4, 0)
+
+    for i, linea in enumerate(lineas):
+        y = alto - caja_alto + 20 + i * 22
+        cv2.putText(frame, linea, (8, y), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (255, 255, 255), 1, cv2.LINE_AA)
+    return frame
 
 
 def main() -> None:
@@ -78,6 +111,12 @@ def main() -> None:
                 ]
                 frame = box_annotator.annotate(scene=frame, detections=detections)
                 frame = label_annotator.annotate(scene=frame, detections=detections, labels=etiquetas)
+
+                with _estado_lock:
+                    peticion_actual, respuesta_actual = _ultima_peticion, _ultima_respuesta
+                if peticion_actual:
+                    frame = _dibujar_estado_api(frame, peticion_actual, respuesta_actual)
+
                 cv2.imshow("Detector de trafico y personas", frame)
                 if cv2.waitKey(1) & 0xFF == ord("q"):
                     break
