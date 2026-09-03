@@ -74,22 +74,32 @@
     const hastaInput = document.getElementById('hasta');
     const btnLimpiar = document.getElementById('btnLimpiar');
 
+    const INTERVALO_ACTUALIZACION_MS = 3000;
+    let cargaEnCurso = false;
+
     async function cargarConteo(desde, hasta) {
-      let url = 'api/conteo.php';
-      if (desde && hasta) {
-        url += `?desde=${encodeURIComponent(desde)}&hasta=${encodeURIComponent(hasta)}`;
+      if (cargaEnCurso) return;
+      cargaEnCurso = true;
+
+      try {
+        let url = 'api/conteo.php';
+        if (desde && hasta) {
+          url += `?desde=${encodeURIComponent(desde)}&hasta=${encodeURIComponent(hasta)}`;
+        }
+
+        const respuesta = await fetch(url);
+        const datos = await respuesta.json();
+
+        totalVehiculos.textContent = datos.vehiculos;
+        totalPersonas.textContent = datos.personas;
+
+        const clases = Object.entries(datos.desglose || {});
+        tablaDesglose.innerHTML = clases.length
+          ? clases.map(([clase, cantidad]) => `<tr><td>${clase}</td><td class="text-end">${cantidad}</td></tr>`).join('')
+          : '<tr><td colspan="2" class="text-muted">Sin datos</td></tr>';
+      } finally {
+        cargaEnCurso = false;
       }
-
-      const respuesta = await fetch(url);
-      const datos = await respuesta.json();
-
-      totalVehiculos.textContent = datos.vehiculos;
-      totalPersonas.textContent = datos.personas;
-
-      const clases = Object.entries(datos.desglose || {});
-      tablaDesglose.innerHTML = clases.length
-        ? clases.map(([clase, cantidad]) => `<tr><td>${clase}</td><td class="text-end">${cantidad}</td></tr>`).join('')
-        : '<tr><td colspan="2" class="text-muted">Sin datos</td></tr>';
     }
 
     formFiltro.addEventListener('submit', (evento) => {
@@ -104,6 +114,7 @@
     });
 
     cargarConteo();
+    setInterval(() => cargarConteo(desdeInput.value, hastaInput.value), INTERVALO_ACTUALIZACION_MS);
   </script>
 </body>
 </html>
