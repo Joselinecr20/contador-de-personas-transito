@@ -22,7 +22,6 @@ def main() -> None:
     ids_relevantes = {name_to_id[nombre] for nombre in config.CLASE_A_TIPO if nombre in name_to_id}
 
     tracker = sv.ByteTrack()
-    line_zone = sv.LineZone(start=sv.Point(*config.LINE_START), end=sv.Point(*config.LINE_END))
     box_annotator = sv.BoxAnnotator()
     label_annotator = sv.LabelAnnotator()
     line_zone_annotator = sv.LineZoneAnnotator()
@@ -38,12 +37,20 @@ def main() -> None:
     if not cap.isOpened():
         raise RuntimeError(f"No se pudo abrir la fuente de video: {config.VIDEO_SOURCE!r}")
 
-    try:
-        while True:
-            ok, frame = cap.read()
-            if not ok:
-                break
+    ok, frame = cap.read()
+    if not ok:
+        raise RuntimeError("La camara se abrio pero no entrego ningun frame")
 
+    # La linea por defecto se calcula con la resolucion real del primer frame
+    # (horizontal, a media altura) en vez de un tamano fijo que puede no
+    # coincidir con la camara conectada.
+    alto, ancho = frame.shape[:2]
+    inicio_linea = config.LINE_START or (0, alto // 2)
+    fin_linea = config.LINE_END or (ancho, alto // 2)
+    line_zone = sv.LineZone(start=sv.Point(*inicio_linea), end=sv.Point(*fin_linea))
+
+    try:
+        while ok:
             resultado = model(frame, verbose=False)[0]
             detections = sv.Detections.from_ultralytics(resultado)
 
@@ -71,6 +78,8 @@ def main() -> None:
                 cv2.imshow("Detector de trafico y personas", frame)
                 if cv2.waitKey(1) & 0xFF == ord("q"):
                     break
+
+            ok, frame = cap.read()
     finally:
         cap.release()
         cv2.destroyAllWindows()

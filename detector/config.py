@@ -24,7 +24,7 @@ def _env_bool(nombre: str, default: bool) -> bool:
     return valor.strip().lower() in ("1", "true", "yes", "on")
 
 
-def _env_point(nombre: str, default: tuple[int, int]) -> tuple[int, int]:
+def _env_point(nombre: str, default: tuple[int, int] | None) -> tuple[int, int] | None:
     valor = os.environ.get(nombre)
     if valor is None:
         return default
@@ -44,9 +44,14 @@ MODEL_PATH = os.environ.get("DETECTOR_MODEL_PATH", "yolov8n.pt")
 CONFIDENCE_THRESHOLD = _env_float("DETECTOR_CONFIDENCE_THRESHOLD", 0.4)
 
 # Linea virtual de conteo: (x1, y1) -> (x2, y2) en pixeles del frame.
-# Depende de la resolucion y el angulo real de la camara; ajustar en sitio.
-LINE_START = _env_point("DETECTOR_LINE_START", (0, 360))
-LINE_END = _env_point("DETECTOR_LINE_END", (1280, 360))
+# Si se deja en None (default), main.py la calcula automaticamente como una
+# linea horizontal a media altura, del ancho real del frame que entregue la
+# camara -- evita que quede mal ubicada si la resolucion no es la esperada.
+# Para una linea vertical (util para probar moviendo la mano de lado a lado
+# frente a una webcam de escritorio), setear ambas variables de entorno, ej.
+# DETECTOR_LINE_START="320,0" DETECTOR_LINE_END="320,480".
+LINE_START = _env_point("DETECTOR_LINE_START", None)
+LINE_END = _env_point("DETECTOR_LINE_END", None)
 
 # Mapeo de clases COCO relevantes -> tipo que espera el backend.
 CLASE_A_TIPO = {
