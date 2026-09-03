@@ -10,8 +10,11 @@ import config
 
 
 def enviar_evento(tipo: str, clase: str) -> None:
+    payload = {"tipo": tipo, "clase": clase}
+    print(f"[API] POST {config.ENDPOINT_URL} body={payload}")
     try:
-        requests.post(config.ENDPOINT_URL, json={"tipo": tipo, "clase": clase}, timeout=2)
+        respuesta = requests.post(config.ENDPOINT_URL, json=payload, timeout=2)
+        print(f"[API] respuesta {respuesta.status_code}: {respuesta.text}")
     except requests.RequestException as error:
         print(f"[WARN] no se pudo enviar el evento ({tipo}/{clase}): {error}")
 
