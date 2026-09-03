@@ -1,0 +1,16 @@
+# Datos/credenciales sensibles compartidos para trabajar, no versionados
+Documentacion/
+
+# Python
+detector/venv/
+detector/__pycache__/
+detector/*.pyc
+*.pt
+
+# PHP / entorno local
+*.log
+
+# Editores/OS
+.vscode/
+.DS_Store
+Thumbs.db
