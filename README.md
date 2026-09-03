@@ -16,6 +16,12 @@ Proyecto standalone, sin relación con el framework LesliePhp/`fac/`.
    ```
    mysql -u root < db/schema.sql
    ```
+   También hay una copia completa (`db/backup.sql`, generada con
+   `mysqldump`) por si se prefiere restaurar la base tal cual en vez de
+   crearla desde cero — sirve igual, incluye la misma estructura:
+   ```
+   mysql -u root < db/backup.sql
+   ```
 2. **Backend + frontend**: proyecto ya vive en `htdocs/`, solo hace falta
    Apache corriendo. Página en `http://localhost/proyecto1/`.
 3. **Detector** (requiere webcam). Primera vez, crear el entorno virtual e
@@ -35,3 +41,35 @@ Proyecto standalone, sin relación con el framework LesliePhp/`fac/`.
    Ajustar `detector/config.py` para cambiar la fuente de video, la línea
    de conteo o el umbral de confianza. `q` con la ventana de overlay
    enfocada la cierra.
+
+## Configurar el detector (`main.py`) por variables de entorno
+
+Todos los valores de `detector/config.py` tienen un default, pero se
+pueden sobreescribir con variables de entorno al levantar el servicio —
+útil para correrlo contra otro backend, otra cámara, o sin ventana (modo
+servicio/headless) sin tocar el código:
+
+| Variable                        | Default                                          | Descripción                                    |
+|----------------------------------|---------------------------------------------------|-------------------------------------------------|
+| `DETECTOR_ENDPOINT_URL`          | `http://localhost/proyecto1/api/registrar.php`     | URL del endpoint PHP que recibe cada cruce      |
+| `DETECTOR_VIDEO_SOURCE`          | `0` (primera webcam)                               | Índice de cámara, ruta a video o URL RTSP       |
+| `DETECTOR_MODEL_PATH`            | `yolov8n.pt`                                       | Pesos del modelo YOLOv8 a usar                  |
+| `DETECTOR_CONFIDENCE_THRESHOLD`  | `0.4`                                              | Confianza mínima para considerar una detección  |
+| `DETECTOR_LINE_START`            | `0,360`                                            | Punto inicial de la línea de conteo (`x,y`)     |
+| `DETECTOR_LINE_END`              | `1280,360`                                         | Punto final de la línea de conteo (`x,y`)       |
+| `DETECTOR_MOSTRAR_VENTANA`       | `true`                                             | `false` para correr sin ventana de overlay      |
+
+**Git Bash / MINGW64** (con el venv ya activado):
+```bash
+DETECTOR_VIDEO_SOURCE=1 DETECTOR_MOSTRAR_VENTANA=false python main.py
+```
+
+**PowerShell**:
+```powershell
+$env:DETECTOR_VIDEO_SOURCE = "1"
+$env:DETECTOR_MOSTRAR_VENTANA = "false"
+python main.py
+```
+
+Sin ninguna variable seteada, corre igual que antes con los defaults de
+`config.py` (webcam 0, ventana visible, endpoint local).
