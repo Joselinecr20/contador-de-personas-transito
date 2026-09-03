@@ -18,12 +18,20 @@ Proyecto standalone, sin relación con el framework LesliePhp/`fac/`.
    ```
 2. **Backend + frontend**: proyecto ya vive en `htdocs/`, solo hace falta
    Apache corriendo. Página en `http://localhost/proyecto1/`.
-3. **Detector** (requiere webcam):
+3. **Detector** (requiere webcam). Primera vez, crear el entorno virtual e
+   instalar dependencias:
    ```
    cd detector
    python -m venv venv
    ./venv/Scripts/pip install -r requirements.txt
-   ./venv/Scripts/python main.py
+   ```
+   Cada vez que se quiera correr, activar el venv antes de usar `python`
+   (si no, `python main.py` va a fallar con `ModuleNotFoundError` porque
+   usa el Python global en vez del venv):
+   ```
+   . venv/Scripts/activate
+   python main.py
    ```
    Ajustar `detector/config.py` para cambiar la fuente de video, la línea
-   de conteo o el umbral de confianza. `q` cierra la ventana de overlay.
+   de conteo o el umbral de confianza. `q` con la ventana de overlay
+   enfocada la cierra.
