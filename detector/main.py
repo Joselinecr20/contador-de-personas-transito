@@ -42,11 +42,13 @@ def main() -> None:
         raise RuntimeError("La camara se abrio pero no entrego ningun frame")
 
     # La linea por defecto se calcula con la resolucion real del primer frame
-    # (horizontal, a media altura) en vez de un tamano fijo que puede no
-    # coincidir con la camara conectada.
+    # (vertical, a mitad de ancho) en vez de un tamano fijo que puede no
+    # coincidir con la camara conectada. Vertical porque el movimiento
+    # esperado (personas/vehiculos cruzando frente a la camara) suele ser
+    # de izquierda a derecha en el cuadro.
     alto, ancho = frame.shape[:2]
-    inicio_linea = config.LINE_START or (0, alto // 2)
-    fin_linea = config.LINE_END or (ancho, alto // 2)
+    inicio_linea = config.LINE_START or (ancho // 2, 0)
+    fin_linea = config.LINE_END or (ancho // 2, alto)
     line_zone = sv.LineZone(start=sv.Point(*inicio_linea), end=sv.Point(*fin_linea))
 
     try:

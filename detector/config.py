@@ -45,11 +45,11 @@ CONFIDENCE_THRESHOLD = _env_float("DETECTOR_CONFIDENCE_THRESHOLD", 0.4)
 
 # Linea virtual de conteo: (x1, y1) -> (x2, y2) en pixeles del frame.
 # Si se deja en None (default), main.py la calcula automaticamente como una
-# linea horizontal a media altura, del ancho real del frame que entregue la
+# linea vertical a mitad de ancho, del alto real del frame que entregue la
 # camara -- evita que quede mal ubicada si la resolucion no es la esperada.
-# Para una linea vertical (util para probar moviendo la mano de lado a lado
-# frente a una webcam de escritorio), setear ambas variables de entorno, ej.
-# DETECTOR_LINE_START="320,0" DETECTOR_LINE_END="320,480".
+# Para una linea horizontal (ej. camara mirando de arriba hacia abajo un
+# pasillo), setear ambas variables de entorno, ej.
+# DETECTOR_LINE_START="0,240" DETECTOR_LINE_END="640,240".
 LINE_START = _env_point("DETECTOR_LINE_START", None)
 LINE_END = _env_point("DETECTOR_LINE_END", None)
 
