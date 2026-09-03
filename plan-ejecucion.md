@@ -130,11 +130,16 @@ inyección de datos basura al ENUM).
 - [x] Probar ambos endpoints con `curl`/Postman antes de tocar Python.
 
 **Fase 3 — Detección en Python**
-- [x] `requirements.txt` + entorno virtual.
+- [x] `requirements.txt` + entorno virtual (instalado y probado).
 - [x] Script base con YOLOv8 + `ByteTrack` + `LineZone` (conteo por cruce)
       y POST del evento hacia `registrar.php`.
-- [ ] Probar con webcam real y validar visualmente (overlay) que el conteo
-      no duplica ni se pierde — pendiente en la máquina con la cámara.
+- [x] Probado con webcam real: captura estable 25s+ sin errores ni falsos
+      positivos de cruce. Se encontró y corrigió un bug real — el backend
+      MSMF por defecto de OpenCV en Windows cortaba el stream a los ~17s;
+      se cambió a `cv2.CAP_DSHOW` para la webcam (ver `main.py`).
+- [ ] Pendiente: validar visualmente (overlay, `MOSTRAR_VENTANA=True`) que
+      un cruce real de una persona/vehículo dispara el POST correcto — no
+      se pudo forzar un cruce real durante la prueba automatizada.
 
 **Fase 4 — Frontend**
 - [x] `index.php` con la tabla y números grandes leyendo `conteo.php`.
@@ -143,8 +148,10 @@ inyección de datos basura al ENUM).
 **Fase 5 — Integración y prueba end-to-end**
 - [x] Correr XAMPP (Apache+MySQL) en paralelo al backend/frontend — probado
       con `curl` (registrar → conteo con y sin filtro de fechas, OK).
-- [ ] Verificar con el detector Python real (webcam) que cada cruce se
-      refleja en la página.
+- [x] Detector real corriendo contra la webcam sin errores (25s+, backend
+      DirectShow). Pipeline completo (captura → detección → tracking →
+      línea de conteo) verificado; falta solo el paso manual de cruzar la
+      línea frente a la cámara para confirmar el POST real end-to-end.
 - [ ] Probar el filtro de fechas con datos de al menos 2 días distintos.
 
 **Fase 6 — Documentación**

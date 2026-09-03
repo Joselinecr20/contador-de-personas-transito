@@ -27,7 +27,14 @@ def main() -> None:
     label_annotator = sv.LabelAnnotator()
     line_zone_annotator = sv.LineZoneAnnotator()
 
-    cap = cv2.VideoCapture(config.VIDEO_SOURCE)
+    # En Windows, el backend MSMF por defecto de OpenCV corta el stream de
+    # varias webcams a los pocos segundos (error interno del driver);
+    # DirectShow es mas estable para dispositivos de captura locales.
+    if isinstance(config.VIDEO_SOURCE, int):
+        cap = cv2.VideoCapture(config.VIDEO_SOURCE, cv2.CAP_DSHOW)
+    else:
+        cap = cv2.VideoCapture(config.VIDEO_SOURCE)
+
     if not cap.isOpened():
         raise RuntimeError(f"No se pudo abrir la fuente de video: {config.VIDEO_SOURCE!r}")
 
