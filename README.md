@@ -1,4 +1,4 @@
-# traffic-people-counter
+# contador-de-personas-transito
 
 Laboratorio de conteo de vehículos y personas a partir de cámara (webcam)
 usando detección/tracking en Python (`ultralytics` + `supervision`), con un
