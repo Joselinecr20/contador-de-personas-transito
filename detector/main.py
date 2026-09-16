@@ -8,9 +8,8 @@ from ultralytics import YOLO
 
 import config
 
-# Guarda solo la ultima peticion/respuesta a la API para mostrarla superpuesta
-# en la ventana de video; enviar_evento corre en un hilo aparte por cada
-# evento, de ahi el lock.
+# Guarda la ultima peticion/respuesta a la API para pintarla sobre el video.
+# El lock existe porque enviar_evento corre en un hilo aparte por evento.
 _estado_lock = threading.Lock()
 _ultima_peticion = ""
 _ultima_respuesta = ""
@@ -61,9 +60,8 @@ def main() -> None:
     box_annotator = sv.BoxAnnotator()
     label_annotator = sv.LabelAnnotator()
 
-    # En Windows, el backend MSMF por defecto de OpenCV corta el stream de
-    # varias webcams a los pocos segundos (error interno del driver);
-    # DirectShow es mas estable para dispositivos de captura locales.
+    # El backend MSMF de OpenCV corta el stream de varias webcams en Windows
+    # a los pocos segundos; DirectShow no tiene ese problema.
     if isinstance(config.VIDEO_SOURCE, int):
         cap = cv2.VideoCapture(config.VIDEO_SOURCE, cv2.CAP_DSHOW)
     else:
@@ -76,11 +74,9 @@ def main() -> None:
     if not ok:
         raise RuntimeError("La camara se abrio pero no entrego ningun frame")
 
-    # Se cuenta cada objeto una sola vez, la primera vez que aparece su ID de
-    # tracking (no en cada frame en que sigue en pantalla). Si el mismo
-    # objeto sale del cuadro y vuelve a entrar, ByteTrack le asigna un ID
-    # nuevo y se cuenta de nuevo -- es el comportamiento esperado ("contar
-    # al ingresar al cuadro").
+    # Se cuenta una vez por ID de tracking, apenas aparece (no en cada frame).
+    # Si el objeto sale del cuadro y vuelve a entrar, ByteTrack le da un ID
+    # nuevo y se cuenta otra vez; es justo lo que queremos.
     ids_contados: set[int] = set()
 
     try:

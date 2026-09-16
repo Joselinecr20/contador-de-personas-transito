@@ -1,6 +1,6 @@
-# Configuracion del detector. Todo puede sobreescribirse con variables de
-# entorno (ver README) para levantar el servicio distinto sin tocar este
-# archivo; si la variable no esta seteada, se usa el valor por defecto de aca.
+# Configuracion del detector. Todo se puede sobreescribir con variables de
+# entorno (ver README) sin tocar este archivo; si no estan seteadas, se usan
+# los valores de aca.
 
 import os
 
