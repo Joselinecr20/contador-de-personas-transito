@@ -8,7 +8,7 @@ function getPdo(): PDO
         $host = 'localhost';
         $dbName = 'traffic_people_counter';
         $user = 'root';
-        $pass = '';
+        $pass = 'pass123';
 
         $pdo = new PDO(
             "mysql:host={$host};dbname={$dbName};charset=utf8mb4",

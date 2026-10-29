@@ -1,6 +1,8 @@
 <?php
 
-require __DIR__ . '/db.php';
+require __DIR__ . '/../auth.php';
+
+requiereLoginApi();
 
 header('Content-Type: application/json; charset=utf-8');
 

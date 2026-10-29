@@ -14,3 +14,12 @@ CREATE TABLE IF NOT EXISTS conteo (
   fecha_hora DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   INDEX idx_tipo_fecha (tipo, fecha_hora)
 );
+
+-- Usuarios que pueden entrar al panel.
+CREATE TABLE IF NOT EXISTS usuarios (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  nombre VARCHAR(100) NOT NULL,
+  email VARCHAR(150) NOT NULL UNIQUE,
+  password_hash VARCHAR(255) NOT NULL,
+  creado_en DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
