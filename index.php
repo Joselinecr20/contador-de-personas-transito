@@ -1,3 +1,10 @@
+<?php
+
+require __DIR__ . '/auth.php';
+
+requiereLogin();
+$usuario = usuarioActual();
+?>
 <!doctype html>
 <html lang="es">
 <head>
@@ -7,6 +14,17 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body class="bg-light">
+  <nav class="navbar bg-white shadow-sm">
+    <div class="container">
+      <span class="navbar-brand mb-0 h1">Contador</span>
+      <form method="post" action="logout.php" class="d-flex align-items-center gap-3">
+        <span class="text-muted"><?= e($usuario['nombre']) ?></span>
+        <input type="hidden" name="csrf" value="<?= e(tokenCsrf()) ?>">
+        <button type="submit" class="btn btn-outline-secondary btn-sm">Cerrar sesión</button>
+      </form>
+    </div>
+  </nav>
+
   <div class="container py-5">
     <h1 class="mb-4 text-center">Conteo de vehículos y personas</h1>
 
@@ -88,6 +106,11 @@
         }
 
         const respuesta = await fetch(url);
+        // Si la sesion expiro mientras la pagina estaba abierta, volver al login.
+        if (respuesta.status === 401) {
+          window.location.href = 'login.php';
+          return;
+        }
         const datos = await respuesta.json();
 
         totalVehiculos.textContent = datos.vehiculos;
