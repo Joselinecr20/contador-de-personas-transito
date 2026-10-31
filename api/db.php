@@ -5,12 +5,14 @@ function getPdo(): PDO
     static $pdo = null;
 
     if ($pdo === null) {
-        // Credenciales del contenedor MySQL definido en docker-compose.yml.
-        $host = '127.0.0.1';
-        $port = 3306;
-        $dbName = 'traffic_people_counter';
-        $user = 'contador';
-        $pass = 'contador_pass';
+        // Por defecto usa el MySQL de XAMPP. Para el contenedor de
+        // docker-compose.yml, definir DB_USER=contador y DB_PASS=contador_pass
+        // (por ejemplo con SetEnv en httpd.conf).
+        $host = getenv('DB_HOST') ?: 'localhost';
+        $port = getenv('DB_PORT') ?: '3306';
+        $dbName = getenv('DB_NAME') ?: 'traffic_people_counter';
+        $user = getenv('DB_USER') ?: 'root';
+        $pass = getenv('DB_PASS') ?: '';
 
         $pdo = new PDO(
             "mysql:host={$host};port={$port};dbname={$dbName};charset=utf8mb4",
