@@ -12,18 +12,24 @@ Proyecto standalone, sin relación con el framework LesliePhp/`fac/`.
 
 ## Cómo levantarlo
 
-1. **Base de datos**: con MySQL de XAMPP corriendo, aplicar el esquema:
+1. **Base de datos**: corre en un contenedor MySQL 8.4 (ya no se usa el
+   MySQL de XAMPP; dejarlo apagado porque usa el mismo puerto 3306). Con
+   Docker Desktop abierto, desde la raíz del proyecto:
    ```
-   mysql -u root < db/schema.sql
+   docker compose up -d
    ```
-   También hay una copia completa (`db/backup.sql`, generada con
-   `mysqldump`) por si se prefiere restaurar la base tal cual en vez de
-   crearla desde cero — sirve igual, incluye la misma estructura:
+   La primera vez (volumen vacío) aplica `db/schema.sql` automáticamente.
+   Datos de conexión: `127.0.0.1:3306`, base `traffic_people_counter`,
+   usuario `contador` / `contador_pass` (root: `root_contador`).
+
+   Para aplicar el esquema a mano, o restaurar la copia completa
+   (`db/backup.sql`, generada con `mysqldump`):
    ```
-   mysql -u root < db/backup.sql
+   docker exec -i contador-mysql mysql -uroot -proot_contador < db/schema.sql
+   docker exec -i contador-mysql mysql -uroot -proot_contador < db/backup.sql
    ```
 2. **Backend + frontend**: proyecto ya vive en `htdocs/`, solo hace falta
-   Apache corriendo. Página en `http://localhost/proyecto1/`.
+   Apache de XAMPP corriendo. Página en `http://localhost/proyecto1/`.
 3. **Detector** (requiere webcam). Primera vez, crear el entorno virtual e
    instalar dependencias:
    ```

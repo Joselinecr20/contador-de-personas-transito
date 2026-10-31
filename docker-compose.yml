@@ -1,0 +1,25 @@
+# Base de datos MySQL del proyecto (reemplaza al MySQL de XAMPP).
+# Levantar con: docker compose up -d
+
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: contador-mysql
+    restart: unless-stopped
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_general_ci
+    environment:
+      TZ: America/Costa_Rica
+      MYSQL_ROOT_PASSWORD: root_contador
+      MYSQL_DATABASE: traffic_people_counter
+      MYSQL_USER: contador
+      MYSQL_PASSWORD: contador_pass
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      # Solo se ejecuta la primera vez (con el volumen vacio).
+      - ./db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+
+volumes:
+  mysql_data:
+    name: contador_mysql_data
