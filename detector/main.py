@@ -1,3 +1,4 @@
+import sys
 import threading
 
 import cv2
@@ -62,7 +63,7 @@ def main() -> None:
 
     # El backend MSMF de OpenCV corta el stream de varias webcams en Windows
     # a los pocos segundos; DirectShow no tiene ese problema.
-    if isinstance(config.VIDEO_SOURCE, int):
+    if isinstance(config.VIDEO_SOURCE, int) and sys.platform == "win32":
         cap = cv2.VideoCapture(config.VIDEO_SOURCE, cv2.CAP_DSHOW)
     else:
         cap = cv2.VideoCapture(config.VIDEO_SOURCE)
