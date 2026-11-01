@@ -47,6 +47,12 @@ CONFIDENCE_THRESHOLD = _env_float(
     0.4
 )
 
+# Tamaño al que YOLO redimensiona cada imagen. 320 mantiene fluido el video
+# del celular (~70 ms por imagen en CPU). 480 (el ancho que manda el celular)
+# detecta más objetos lejanos pero tarda ~120 ms; 640 no detecta más y tarda
+# ~170 ms.
+IMG_SIZE = int(os.environ.get("DETECTOR_IMG_SIZE", "320"))
+
 # Mapeo de clases COCO relevantes.
 CLASE_A_TIPO = {
     "person": "persona",

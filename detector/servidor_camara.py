@@ -18,11 +18,31 @@ app = FastAPI(title="Detector de cámara móvil")
 # El modelo se carga una sola vez.
 modelo = YOLO(config.MODEL_PATH)
 
+# La primera inferencia tarda varios segundos (inicializa PyTorch); se hace
+# aquí al arrancar para que el primer fotograma del celular no se congele.
+modelo(np.zeros((360, 480, 3), dtype=np.uint8), imgsz=config.IMG_SIZE, verbose=False)
+
+IDS_RELEVANTES = [
+    class_id
+    for class_id, nombre in modelo.names.items()
+    if nombre in config.CLASE_A_TIPO
+]
+
+anotador_cajas = sv.BoxAnnotator()
+anotador_etiquetas = sv.LabelAnnotator()
+
 # Evita que varias conexiones procesen el modelo simultáneamente.
 bloqueo_detector = asyncio.Lock()
 
 # Elimina cajas muy superpuestas antes de asignar identificadores.
 UMBRAL_NMS = 0.5
+
+# Desde el celular llegan pocos fotogramas por segundo, así que una persona
+# avanza mucho entre uno y otro y ByteTrack no la reconoce como la misma (la
+# cuenta nunca o tarde). Agrandar las cajas solo para el tracker hace que se
+# sigan superponiendo. En simulación, a 50 px por fotograma pasa de contar
+# 5 de 8 personas a 8 de 8.
+FACTOR_CAJA_TRACKER = 2.5
 
 
 def registrar_evento(tipo: str, clase: str) -> None:
@@ -59,30 +79,31 @@ async def registrar_evento_async(tipo: str, clase: str) -> None:
     await asyncio.to_thread(registrar_evento, tipo, clase)
 
 
+def escalar_cajas(xyxy: np.ndarray, factor: float) -> np.ndarray:
+    # Agranda o reduce cada caja manteniendo su centro.
+    centros = (xyxy[:, :2] + xyxy[:, 2:]) / 2
+    mitades = (xyxy[:, 2:] - xyxy[:, :2]) * factor / 2
+    return np.hstack([centros - mitades, centros + mitades])
+
+
 def procesar_frame(
     frame: np.ndarray,
     tracker: sv.ByteTrack,
     ids_contados: set
 ) -> tuple[np.ndarray, list[tuple[str, str]]]:
 
-    resultado = modelo(frame, verbose=False)[0]
+    resultado = modelo(frame, imgsz=config.IMG_SIZE, verbose=False)[0]
     detecciones = sv.Detections.from_ultralytics(resultado)
 
     nombres = modelo.names
     eventos = []
-
-    ids_relevantes = {
-        class_id
-        for class_id, nombre in nombres.items()
-        if nombre in config.CLASE_A_TIPO
-    }
 
     if detecciones.class_id is None:
         return frame, eventos
 
     mascara = (
         (detecciones.confidence >= config.CONFIDENCE_THRESHOLD)
-        & np.isin(detecciones.class_id, list(ids_relevantes))
+        & np.isin(detecciones.class_id, IDS_RELEVANTES)
     )
 
     detecciones = detecciones[mascara]
@@ -92,8 +113,11 @@ def procesar_frame(
         threshold=UMBRAL_NMS
     )
 
-    # ByteTrack recibe las detecciones después de eliminar duplicados.
+    # ByteTrack recibe las detecciones después de eliminar duplicados, con las
+    # cajas agrandadas; luego se devuelven a su tamaño real para dibujarlas.
+    detecciones.xyxy = escalar_cajas(detecciones.xyxy, FACTOR_CAJA_TRACKER)
     detecciones = tracker.update_with_detections(detecciones)
+    detecciones.xyxy = escalar_cajas(detecciones.xyxy, 1 / FACTOR_CAJA_TRACKER)
 
     if detecciones.tracker_id is not None:
         for tracker_id, class_id in zip(
@@ -116,9 +140,6 @@ def procesar_frame(
             detecciones.confidence
         )
     ]
-
-    anotador_cajas = sv.BoxAnnotator()
-    anotador_etiquetas = sv.LabelAnnotator()
 
     frame = anotador_cajas.annotate(
         scene=frame,
@@ -204,7 +225,8 @@ def estado():
 async def detectar(websocket: WebSocket):
     await websocket.accept()
 
-    tracker = sv.ByteTrack()
+    # Tolera ~2 s sin ver a alguien (a ~5 fps) antes de darle un ID nuevo.
+    tracker = sv.ByteTrack(lost_track_buffer=10)
     ids_contados = set()
 
     print("[CAMARA] Nueva sesión iniciada")
