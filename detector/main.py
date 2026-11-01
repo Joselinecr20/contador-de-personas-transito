@@ -84,7 +84,7 @@ def main() -> None:
 
     try:
         while ok:
-            resultado = model(frame, verbose=False)[0]
+            resultado = model(frame, imgsz=config.IMG_SIZE, verbose=False)[0]
             detections = sv.Detections.from_ultralytics(resultado)
 
             mascara = (detections.confidence >= config.CONFIDENCE_THRESHOLD) & np.isin(

@@ -105,6 +105,7 @@ servicio/headless) sin tocar el código:
 | `DETECTOR_VIDEO_SOURCE`          | `0` (primera webcam)                               | Índice de cámara, ruta a video o URL RTSP       |
 | `DETECTOR_MODEL_PATH`            | `yolov8n.pt`                                       | Pesos del modelo YOLOv8 a usar                  |
 | `DETECTOR_CONFIDENCE_THRESHOLD`  | `0.4`                                              | Confianza mínima para considerar una detección  |
+| `DETECTOR_IMG_SIZE`              | `320`                                              | Tamaño de entrada de YOLO (480 = detecta más objetos lejanos, ~50 ms más lento en CPU) |
 | `DETECTOR_MOSTRAR_VENTANA`       | `true`                                             | `false` para correr sin ventana de overlay      |
 | `DETECTOR_API_KEY`               | *(vacío, obligatoria)*                             | Misma clave que `SetEnv DETECTOR_API_KEY` en Apache |
 

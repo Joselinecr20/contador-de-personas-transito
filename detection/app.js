@@ -11,9 +11,14 @@ let conexionSocket = null;
 let intervaloEnvio = null;
 let urlImagenAnterior = null;
 let enviandoFotograma = false;
+let momentoEnvio = 0;
 
-const INTERVALO_FOTOGRAMAS = 200;
+// Solo hay un fotograma en camino a la vez; el intervalo corto hace que el
+// siguiente salga apenas llega la respuesta del anterior.
+const INTERVALO_FOTOGRAMAS = 50;
 const CALIDAD_IMAGEN = 0.5;
+// Si el servidor no responde un fotograma, se libera el envío para no congelarse.
+const ESPERA_MAXIMA_RESPUESTA = 3000;
 
 function actualizarEstadoGeneral(activo, mensaje) {
     const color = activo ? '#22c55e' : '#64748b';
@@ -161,6 +166,13 @@ canvas.height = 360;
 
     intervaloEnvio = setInterval(() => {
         if (
+            enviandoFotograma &&
+            performance.now() - momentoEnvio > ESPERA_MAXIMA_RESPUESTA
+        ) {
+            enviandoFotograma = false;
+        }
+
+        if (
             !conexionSocket ||
             conexionSocket.readyState !== WebSocket.OPEN ||
             videoCamara.readyState < HTMLMediaElement.HAVE_CURRENT_DATA ||
@@ -170,6 +182,7 @@ canvas.height = 360;
         }
 
         enviandoFotograma = true;
+        momentoEnvio = performance.now();
 
         contexto.drawImage(
             videoCamara,
