@@ -12,24 +12,63 @@ Proyecto standalone, sin relación con el framework LesliePhp/`fac/`.
 
 ## Cómo levantarlo
 
-1. **Base de datos**: corre en un contenedor MySQL 8.4 (ya no se usa el
-   MySQL de XAMPP; dejarlo apagado porque usa el mismo puerto 3306). Con
-   Docker Desktop abierto, desde la raíz del proyecto:
+1. **Base de datos**: hay dos opciones, `api/db.php` funciona con ambas.
+
+   **a) MySQL de XAMPP** (default de `db.php`: `root` sin contraseña):
+   ```
+   mysql -u root < db/schema.sql
+   ```
+   También hay una copia completa (`db/backup.sql`, generada con
+   `mysqldump`) por si se prefiere restaurar la base tal cual en vez de
+   crearla desde cero — sirve igual, incluye la misma estructura:
+   ```
+   mysql -u root < db/backup.sql
+   ```
+
+   **b) Contenedor MySQL 8.4** (dejar apagado el MySQL de XAMPP porque usa
+   el mismo puerto 3306). Con Docker Desktop abierto, desde la raíz:
    ```
    docker compose up -d
    ```
    La primera vez (volumen vacío) aplica `db/schema.sql` automáticamente.
-   Datos de conexión: `127.0.0.1:3306`, base `traffic_people_counter`,
-   usuario `contador` / `contador_pass` (root: `root_contador`).
-
-   Para aplicar el esquema a mano, o restaurar la copia completa
-   (`db/backup.sql`, generada con `mysqldump`):
+   Para restaurar la copia completa:
    ```
-   docker exec -i contador-mysql mysql -uroot -proot_contador < db/schema.sql
    docker exec -i contador-mysql mysql -uroot -proot_contador < db/backup.sql
    ```
+   En este caso hay que decirle a PHP el usuario del contenedor, en
+   `httpd.conf` de XAMPP (reiniciar Apache después):
+   ```
+   SetEnv DB_USER contador
+   SetEnv DB_PASS contador_pass
+   ```
+   `db.php` también acepta `DB_HOST`, `DB_PORT` y `DB_NAME`.
 2. **Backend + frontend**: proyecto ya vive en `htdocs/`, solo hace falta
-   Apache de XAMPP corriendo. Página en `http://localhost/proyecto1/`.
+   Apache corriendo. Página en `http://localhost/proyecto1/`.
+
+   **Clave del detector (obligatoria)**: `api/registrar.php` solo acepta
+   peticiones que traigan el header `X-Detector-Key` con la clave
+   configurada; sin ella responde `503`. Generar una clave propia (por
+   ejemplo `python -c "import secrets; print(secrets.token_hex(32))"`) y
+   ponerla en `httpd.conf`:
+   ```
+   SetEnv DETECTOR_API_KEY "<tu-clave>"
+   ```
+   El detector (`main.py` o `servidor_camara.py`) debe correr con la misma
+   clave en la variable de entorno `DETECTOR_API_KEY`. No subir la clave
+   real al repositorio.
+
+   **Detección desde el navegador** (`detection/index.php`): la página
+   manda la cámara por WebSocket a `servidor_camara.py` a través de
+   Apache. Requiere `mod_proxy` y `mod_proxy_wstunnel` habilitados en
+   `httpd.conf` y:
+   ```
+   ProxyPass /proyecto1/ws/deteccion ws://127.0.0.1:8000/ws/deteccion
+   ProxyPassReverse /proyecto1/ws/deteccion ws://127.0.0.1:8000/ws/deteccion
+   ```
+   Y levantar el servidor (con el venv activado, desde `detector/`):
+   ```
+   uvicorn servidor_camara:app --host 127.0.0.1 --port 8000
+   ```
 3. **Detector** (requiere webcam). Primera vez, crear el entorno virtual e
    instalar dependencias:
    ```
@@ -67,6 +106,7 @@ servicio/headless) sin tocar el código:
 | `DETECTOR_MODEL_PATH`            | `yolov8n.pt`                                       | Pesos del modelo YOLOv8 a usar                  |
 | `DETECTOR_CONFIDENCE_THRESHOLD`  | `0.4`                                              | Confianza mínima para considerar una detección  |
 | `DETECTOR_MOSTRAR_VENTANA`       | `true`                                             | `false` para correr sin ventana de overlay      |
+| `DETECTOR_API_KEY`               | *(vacío, obligatoria)*                             | Misma clave que `SetEnv DETECTOR_API_KEY` en Apache |
 
 **Git Bash / MINGW64** (con el venv ya activado):
 ```bash

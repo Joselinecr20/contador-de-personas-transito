@@ -25,7 +25,9 @@ def enviar_evento(tipo: str, clase: str) -> None:
         _ultima_peticion = peticion_str
         _ultima_respuesta = "esperando respuesta..."
     try:
-        respuesta = requests.post(config.ENDPOINT_URL, json=payload, timeout=2)
+        # registrar.php rechaza (401) las peticiones sin la clave del detector.
+        headers = {"X-Detector-Key": config.API_KEY}
+        respuesta = requests.post(config.ENDPOINT_URL, json=payload, headers=headers, timeout=2)
         respuesta_str = f"{respuesta.status_code}: {respuesta.text}"
         print(f"[API] respuesta {respuesta_str}")
         with _estado_lock:
